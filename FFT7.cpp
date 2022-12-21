@@ -1,15 +1,39 @@
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
 #include <vector>
+
+#define int long long
+
 using std::cin, std::cout, std::complex;
 
 long long mod = 7340033;
-const long long MOD = 998244353;
+const long long MOD = 7340033;
 const long long logN = 18;
-const long long root1 = 79695603;
-const long long revroot1 = 884430270;
+const long long root1[] = {
+    1,
+    // 998244352, 86583718, 86583718, 69212480, 69212480, 15053575, 15053575, 15032460, 4097924, 1762757, 752127, 299814, 299814, 227806, 42058, 42058, 8996, 2192,
+    7340032,
+    2306278,
+    2001861,
+    1627581,
+    44983,
+    44983,
+    23061,
+    23061,
+    8735,
+    8735,
+    4941,
+    1851,
+    772,
+    772,
+    194,
+    83,
+    83,
+    79,
+};
 
 int reversebits(int x, int pw2) {
     int res = 0;
@@ -21,7 +45,7 @@ int reversebits(int x, int pw2) {
 }
 
 class Complex {
-public:
+   public:
     long double r;
     long double i;
 
@@ -63,13 +87,13 @@ public:
         return static_cast<long long>(round(r / static_cast<long double>(n)));
     }
 
-    static Complex get1root() {
-        long double phi = 2 * acos(-1) / static_cast<long double>(1ll << logN);
+    static Complex get1root(long long n) {
+        long double phi = 2 * acos(-1) / static_cast<long double>(1 << n);
         return Complex(cos(phi), sin(phi));
     }
 
-    static Complex get1rootrev() {
-        long double phi = -2 * acos(-1) / static_cast<long double>(1ll << logN);
+    static Complex get1rootrev(long long n) {
+        long double phi = -2 * acos(-1) / static_cast<long double>(1 << n);
         return Complex(cos(phi), sin(phi));
     }
 };
@@ -91,7 +115,7 @@ long long gcd(long long a, long long b, long long &v1, long long &v2) {
 }
 
 class Zmod {
-public:
+   public:
     long long val;
 
     Zmod() : val(0) {}
@@ -129,11 +153,14 @@ public:
         return (val * revn) % MOD;
     }
 
-    static Zmod get1root() {
-        return Zmod(root1);
+    static Zmod get1root(int lg) {
+        return Zmod(root1[lg]);
     }
 
-    static Zmod get1rootrev() {
+    static Zmod get1rootrev(int lg) {
+        int revroot1, _;
+        gcd(root1[lg], MOD, revroot1, _);
+        revroot1 = (revroot1 % MOD + MOD) % MOD;
         return Zmod(revroot1);
     }
 };
@@ -169,25 +196,45 @@ void FFT(T *a, int n, T q) {
 
 template <typename T>
 long long *mul(long long *p1, long long *p2, int sz) {
-    int n = (1ll << logN);
+    int n = 1;
+    int lg = 1;
+    while (n < sz) {
+        n *= 2;
+        lg++;
+    }
+    n *= 2;
     T *a = new T[n]();
     T *b = new T[n]();
-    for (size_t i = 0; i < sz; i++)
+    // cout << "mul ";
+    for (size_t i = 0; i < sz; i++) {
+        // cout << p1[i] << " ";
         a[i] = p1[i];
-    for (size_t i = 0; i < sz; i++)
+    }
+    // cout << "and ";
+    for (size_t i = 0; i < sz; i++) {
+        // cout << p2[i] << " ";
         b[i] = p2[i];
-    T q = T::get1root();
+    }
+
+    T q = T::get1root(lg);
+    // cout << "\n" << q.val;
     FFT(a, n, q);
     FFT(b, n, q);
+    // cout << "\n fft: ";
     for (int i = 0; i < n; i++) {
+        // cout << a[i].val << " ";
+
         a[i] *= b[i];
     }
-    q = T::get1rootrev();
+    q = T::get1rootrev(lg);
     FFT(a, n, q);
     long long *res = new long long[n];
+    // cout << "\ngot ";
     for (int i = 0; i < n; i++) {
         res[i] = ((a[i].divN(n)) % mod + mod) % mod;
+        // cout << res[i] << " ";
     }
+    // cout << "\n";
     delete[] a;
     delete[] b;
     return res;
@@ -237,17 +284,18 @@ long long binpow(long long a, int p, long long mod) {
     return k;
 }
 
-/*int main() {
-    for (int i = 2; i < MOD; i++) {
-        if ((i * root1) % MOD == 1ll) {
-            cout << i << "\n";
-
-            return 0;
+/*signed main() {
+    for (int j = 1; j <= 18; j++) {
+        for (int i = 2; i < MOD; i++) {
+            if (binpow(i, (1 << j), MOD) == 1ll) {
+                cout << i << ", ";
+                break;
+            }
         }
     }
 }*/
 
-int main() {
+signed main() {
     std::ios::sync_with_stdio(0);
     cin.tie(0);
     int n, m, n0 = 1;
@@ -257,7 +305,7 @@ int main() {
         n0 *= 2;
     while (n0 < m)
         n0 *= 2;
-    n0 *= 2;
+    n0 *= 4;
     long long *a = new long long[n0]();
     for (int i = 0; i < n; i++)
         cin >> a[i];

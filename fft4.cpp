@@ -6,10 +6,31 @@
 #include <vector>
 using std::cin, std::cout;
 
+// long long mod = 7340033;
 const long long MOD = 998244353;
-const long long logN = 21;
-const long long root1 = 421;
-const long long revroot1 = 884430270;
+const long long logN = 18;
+const long long root1[] = {
+    1,
+    998244352, 86583718, 86583718, 69212480, 69212480, 15053575, 15053575, 15032460, 4097924, 1762757, 752127, 299814, 299814, 227806, 42058, 42058, 8996, 2192, 1847, 646, 421,
+    /*7340032,
+    2306278,
+    2001861,
+    1627581,
+    44983,
+    44983,
+    23061,
+    23061,
+    8735,
+    8735,
+    4941,
+    1851,
+    772,
+    772,
+    194,
+    83,
+    83,
+    79,*/
+};
 
 int reversebits(int x, int pw2) {
     int res = 0;
@@ -60,16 +81,16 @@ class Complex {
     }
 
     long long divN(long long n) {
-        return static_cast<long long>(r / static_cast<long double>(n) + static_cast<long double>(0.5));
+        return static_cast<long long>(round(r / static_cast<long double>(n)));
     }
 
-    static Complex get1root() {
-        long double phi = 2 * acos(-1) / static_cast<long double>(1ll << logN);
+    static Complex get1root(long long n) {
+        long double phi = 2 * acos(-1) / static_cast<long double>(1 << n);
         return Complex(cos(phi), sin(phi));
     }
 
-    static Complex get1rootrev() {
-        long double phi = -2 * acos(-1) / static_cast<long double>(1ll << logN);
+    static Complex get1rootrev(long long n) {
+        long double phi = -2 * acos(-1) / static_cast<long double>(1 << n);
         return Complex(cos(phi), sin(phi));
     }
 };
@@ -79,16 +100,14 @@ std::ostream &operator<<(std::ostream &output, const Complex &val) {
     return output;
 }
 
-long long gcd(long long a, long long b, long long &x, long long &y) {
-    if (a == 0) {
-        x = 0;
-        y = 1;
+long long gcd(long long a, long long b, long long &v1, long long &v2) {
+    if (!a) {
+        v1 = 0;
+        v2 = 1;
         return b;
     }
-    long long x1, y1;
-    long long d = gcd(b % a, a, x1, y1);
-    x = y1 - (b / a) * x1;
-    y = x1;
+    long long d = gcd(b % a, a, v2, v1);
+    v1 -= (b / a) * v2;
     return d;
 }
 
@@ -98,7 +117,7 @@ class Zmod {
 
     Zmod() : val(0) {}
 
-    Zmod(long long x) : val(x) {}
+    Zmod(long long x) : val((x % MOD + MOD) % MOD) {}
 
     Zmod(const Zmod &tocopy) : val(tocopy.val) {}
 
@@ -131,11 +150,14 @@ class Zmod {
         return (val * revn) % MOD;
     }
 
-    static Zmod get1root() {
-        return Zmod(root1);
+    static Zmod get1root(int lg) {
+        return Zmod(root1[lg]);
     }
 
-    static Zmod get1rootrev() {
+    static Zmod get1rootrev(int lg) {
+        long long revroot1, _;
+        gcd(root1[lg], MOD, revroot1, _);
+        revroot1 = (revroot1 % MOD + MOD) % MOD;
         return Zmod(revroot1);
     }
 };
@@ -171,30 +193,49 @@ void FFT(T *a, int n, T q) {
 
 template <typename T>
 long long *mul(long long *p1, long long *p2, int sz) {
-    int n = (1ll << logN);
+    int n = 1;
+    int lg = 1;
+    while (n < sz) {
+        n *= 2;
+        lg++;
+    }
+    n *= 2;
     T *a = new T[n]();
     T *b = new T[n]();
-    for (size_t i = 0; i < sz; i++)
+    // cout << "mul ";
+    for (size_t i = 0; i < sz; i++) {
+        // cout << p1[i] << " ";
         a[i] = p1[i];
-    for (size_t i = 0; i < sz; i++)
+    }
+    // cout << "and ";
+    for (size_t i = 0; i < sz; i++) {
+        // cout << p2[i] << " ";
         b[i] = p2[i];
-    T q = T::get1root();
+    }
+
+    T q = T::get1root(lg);
+    // cout << "\n" << q.val;
     FFT(a, n, q);
     FFT(b, n, q);
+    // cout << "\n fft: ";
     for (int i = 0; i < n; i++) {
+        // cout << a[i].val << " ";
+
         a[i] *= b[i];
     }
-    q = T::get1rootrev();
+    q = T::get1rootrev(lg);
     FFT(a, n, q);
     long long *res = new long long[n];
+    // cout << "\ngot ";
     for (int i = 0; i < n; i++) {
         res[i] = a[i].divN(n);
+        // cout << res[i] << " ";
     }
+    // cout << "\n";
     delete[] a;
     delete[] b;
     return res;
 }
-
 int binpow(long long a, int p, long long mod) {
     if (p == 0)
         return 1 % mod;
@@ -203,6 +244,17 @@ int binpow(long long a, int p, long long mod) {
     if (p % 2)
         k = (k * a) % mod;
     return k;
+}
+
+signed mai() {
+    for (int j = 18; j <= 21; j++) {
+        for (int i = 2; i < MOD; i++) {
+            if (binpow(i, (1 << j), MOD) == 1ll) {
+                cout << i << ", ";
+                break;
+            }
+        }
+    }
 }
 
 long long stress(int n, int m) {
@@ -238,7 +290,7 @@ int main() {
     for (int i = 1; i < m; i++) {
         ++a[binpow(i, n, m)];
     }
-    long long *b = mul<Zmod>(a, a, m);
+    long long *b = mul<Complex>(a, a, m);
     long long ans = 0, ans1 = 0;
     for (int i = 0; i < m; i++) {
         // cout << a[i] << " (" << b[i] << ", " << b[i + m] << ")\n";
